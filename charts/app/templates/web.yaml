@@ -5,7 +5,6 @@ apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
 kind: Deployment
 metadata:
   name: {{ include "web.name" $context }}
-  namespace: {{ .Release.namespace | default "default" }}
   labels:
   {{- include "web.labels" $context | nindent 4 }}
 spec:
@@ -51,7 +50,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "service.name" $context }}
-  namespace: {{ .Release.namespace | default "default" }}
 spec:
   selector:
     {{- include "web.selectorLabels" $context | nindent 4 }}
@@ -66,7 +64,6 @@ apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: {{ include "web.name" $context }}
-  namespace: {{ .Release.namespace | default "default" }}
   annotations:
     {{- if .Values.web.ingress.annotations }}
     {{- toYaml .Values.web.ingress.annotations | nindent 4 }}

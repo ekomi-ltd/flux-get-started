@@ -5,7 +5,6 @@ apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: {{ include "cron.name" $context }}
-  namespace: {{ $.Release.namespace | default "default" }}
   labels:
     {{- include "crons.labels" $context | nindent 4 }}
     {{- if $.Values.labels }} {{ toYaml $.Values.labels | nindent 4}} {{ end }}

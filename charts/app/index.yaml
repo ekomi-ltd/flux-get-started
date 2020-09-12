@@ -1,0 +1,24 @@
+apiVersion: v1
+entries:
+  app:
+  - apiVersion: v2
+    appVersion: 1.6.0
+    created: "2020-07-28T16:49:05.687295+02:00"
+    description: The base for eKomi Apps. Supports web, workers and crons.
+    digest: 8225be6990842ac3db23ed9ef527e46267d9950f5e6201134dd62759b52f4242
+    name: app
+    type: application
+    urls:
+    - app-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.6.0
+    created: "2020-07-28T16:49:05.687061+02:00"
+    description: The base for eKomi Apps. Supports web, workers and crons.
+    digest: 95b3c107cb4b8f2c46b590a649bee65f0bde85d1174cfcf1c46d94a4c0e0901e
+    name: app
+    type: application
+    urls:
+    - app-0.1.0.tgz
+    version: 0.1.0
+generated: "2020-07-28T16:49:05.686694+02:00"

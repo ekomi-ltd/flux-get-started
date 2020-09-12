@@ -1,0 +1,51 @@
+{{- range $.Values.workers }}
+{{- $context := dict "global" $ "current" .  }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "worker.name" $context }}
+  namespace: {{ $.Release.namespace | default "default" }}
+  labels:
+    {{- include "worker.labels" $context | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "worker.selectorLabels" $context | nindent 6 }}
+  replicas: {{ .count | default "1" }}
+  template:
+    metadata:  
+      {{- with $.Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "worker.selectorLabels" $context | nindent 8 }}
+    spec:
+      imagePullSecrets:
+        - name: {{ coalesce .imagePullSecret $.Values.imagePullSecret "aws-registry" }}
+      containers:
+      - name: {{ .containerName | default "main" }}
+        image: "{{ $.Values.image.repository }}:{{ coalesce $.Values.image.tag  $.Values.parentChart.AppVersion }}"
+        {{ if .command }}
+        command: {{ toYaml .command | nindent 8 }}
+        {{else}}
+        command:
+        - /sbin/entrypoint.sh
+        {{ end }}
+        {{ if .args }}args: {{ toYaml .args | nindent 8 }}{{- end }}
+        envFrom:
+        - secretRef:
+            name: {{ coalesce .secretsFrom $.Values.secretsFrom }}
+        resources:
+          {{- if get . "resources"}}
+          {{- toYaml .resources | nindent 10 }}
+          {{- else }}
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
+          {{- end }}
+{{- end }}

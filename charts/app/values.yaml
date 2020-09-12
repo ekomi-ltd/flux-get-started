@@ -1,0 +1,233 @@
+# Default values for app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+
+# Major things
+# 1. name
+# 2. namespace
+# 3. secretsFrom (fallback to some convention please)
+# 4. imagePullSecrets (default to some fixed value)
+# 5. image and tag
+# 6. hostname
+# 7. tls
+
+# TODO: Fix the namespace properly as it should be. DONE
+# TODO: Look into labels
+# TODO: Look into annotations
+# Maybe the command and args should not have defaults?
+# TODO: Document the parent block values as well.
+# TODO: Document top level values
+# TODO: Make any image deployable because imagePullSecrets are different
+# FIXME: Fix image pull secrets
+
+# PROBLEMATIC
+# imagePUllSecrets, seceretsFrom, image
+
+
+# BEGIN SPECIAL VALUES
+# parentChart:
+#   Name: sff
+#   Version: 0.1.0
+#   AppVersion: "v1.4.6"
+# # END SPECIAL VALUES
+  
+# secretsFrom: sff
+# name: sff
+# namespace: axa
+# image:
+#   repository: 429316335035.dkr.ecr.eu-central-1.amazonaws.com/ekomi/sff
+# labels:
+#   global/label: label-1
+#   global/value: label-2
+
+#****************************************************************************************************
+#                                            WEB
+# Web is the part that servers traffic. It has many configurable aspects such as the container port
+# the port of the serivce to be exposed on, the domain names it should be accessible with and 
+# correspoinding TLS certificates.
+#
+# Below is furhter detail on each of the configurable elements:
+#
+# - command:
+#       The command to execute in the container. Defaults to /sbin/entrypoint.sh
+#
+# - args:
+#       The arguments to be passed to the above command.
+#
+# - imagePullSecret:
+#       The image pull secret if differnet from the global settings.
+#
+# - secretsFrom:
+#       If the secrets are to be picked up from somewhere else.
+#
+# - count:
+#       The number of copies to run of this particular service. (replicas)
+#
+# - containerPort:
+#       The port on which the container is listening. Defaults to 8000.
+#
+# - servicePort:
+#       The port number on which the service should be exposed to.
+#
+# - resources:
+#       How much resources in terms of CPU and memory to be allocated?
+#       This takes standard Kubernetes resources stanza.
+#    
+# The ingress node is only required if you want the service to be reachable out side the 
+# cluster. If you don't want that and the service has to be only consumed within the cluster
+# then you can just skip the whole ingress block and the service will not be exposed 
+# to the outside world.
+# - ingress.domains: 
+#       This is the list of domains that the serivce would be accessible through. A service 
+#       may be accessible via multiple domain names in which case, each domain name should 
+#       point to the ingress load balancer. If the external-dns is configurbed, these domains 
+#       will be automatically registered with correct values for certain domains. 
+#       In all other cases, these domains should be registered already.
+#
+# - ingress.certificates:
+#       This is the map of TLS certificates (already stored as kubernetes Secret objects
+#       either manually or via cert-manager) to the corresponding domains for which the 
+#       certificate should be served for. See the example below
+#
+# - ingress.annotations: 
+#       There are many annotations that an Ingress resource might require to work with 
+#       nginx Ingress controller or cert-manager or external-dns or for any other purpose
+#       These annotations can be specified here. If nothing is specified, we automatically
+#       add the kubernetes.io/ingress.class: nginx annotation so that the service 
+#       can be exposed externally
+#****************************************************************************************************
+
+# TODO: What if we don't want to expose the service?
+# Nest the values under ingress!
+
+# web:
+#   ingress:
+#     domains:
+#       - sff.coddle.de
+#     certificates:
+#       wild-card-rajapack-ekomiapps-de-tls:
+#         - sff.rajapack.ekomiapps.de
+#         - sff.coddle.de
+#         - sff.ekomi.com
+#     annotations:
+#       kubernetes.io/ingress.class: nginx
+#       cert-manager.io/cluster-issuer: letsencrypt
+#   count: 4              # Optional, should default to two?
+#   containerName: awesome # Optional 
+#   containerPort: 1770
+#   servicePort: 1900
+#   command: ["/sbin/somewhere.sh"]
+#   args: ["do", "it", "right", "now"]
+#   imagePullSecret: "from top"
+#   secretsFrom: goodplace
+#   resources:
+#     requests:
+#       cpu: 150m
+#       memory: 256Mi
+#     limits:
+#       cpu: 500m
+#       memory: 40964Mi
+
+#****************************************************************************************************
+#                                            WORKERS
+# Workers are the long running jobs that an application might have. An application might 
+# have multiple workers and each worker might be running multiple instances. The main 
+# configurable aspects of a worker are the command, args, memory, processor and number of 
+# workers provisioned. Almost all the attributes are optiona and are documented as under:
+
+# - name: required 
+# - namespace: fallsback to default
+# - count: number of workers to run. Defaults to 1
+# - command: The command to be executed. Defautls to /sbin/entrypoint.sh
+# - args: The arguments to be passed to the script
+# - resources: CPU and memory resources to be allocated.
+# - secretsFrom: secrets to be picked up from. Defaults to the global value.
+# - imagePullSecret: Image to be pulled from.
+# - containerName: defaults to main
+#****************************************************************************************************
+   
+# workers:
+#   - name: general
+#     count: 8
+#     secretsFrom: very-secret-place
+#     containerName: the-workhorse
+#     command: ["/sbin/main.sh"]
+#     args: ["/sbin/workers/general.sh", "do", "it"]
+#     resources:
+#       requests:
+#         cpu: 150m
+#         memory: 256Mi
+#       limits:
+#         cpu: 500m
+#         memory: 1024Mi
+
+
+#****************************************************************************************************
+#                                         CRON JOBS
+# This section describes the cron jobs for the application and a template with all the possible 
+# option is showed below. 
+#
+# Following are the values for a cron entry:
+#
+#  - name:
+#     Name of the cron. Required
+#
+#  - schedule:
+#     Cron expression representing the schedule.
+#
+#  - command:
+#     Command to be executed. Defaults to /sbin/entrypont.sh
+#
+#  - args:
+#     Args to be passed to the command above.
+# 
+#  - resources:
+#     Standard K8s resources stanza. Optional
+#
+#  - labels:
+#     Additional labels to be applied to the cron job besides the computed and global labels.
+#
+#  - secretsFrom:
+#     Secrets to be injected from if different from the global
+#
+#  - concurrencyPolicy:
+#     If concurent cron jobs are allowed. Defaults to Forbid. See the CronJob documentation 
+#     in Kubernetes documentation.
+#
+#  - startingDeadlineSeconds:
+#     See the CronJob resource in k8s documentation
+#
+# - successfulJobsHistoryLimit
+#     See the CronJob resource in k8s documentation
+#
+#  - failedJobsHistoryLimit:
+#     See the CronJob resource in k8s documentation
+#
+#  - suspend:
+#     Whether the cron job should be suspended.  
+#
+#****************************************************************************************************
+
+# crons:
+#   - name: retry-failed-jobs
+#     schedule: "*/15 * * * *"
+#     concurrencyPolicy: Allow
+#     startingDeadlineSeconds: 60
+#     successfulJobsHistoryLimit: 3
+#     failedJobsHistoryLimit: 1
+#     suspend: true
+#     command: ["/sbin/entrypoint.sh"]
+#     args: ["/sbin/crons/retry-failed-jobs.sh"]
+#     secretsFrom: lala-land
+#    labels:
+#      cron/local: label-1
+#      cron/another: label-2
+#     resources:
+#       requests:
+#         cpu: 150m
+#         memory: 256Mi
+#       limits:
+#         cpu: 500m
+#         memory: 1024Mi

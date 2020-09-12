@@ -1,0 +1,68 @@
+app:
+  # Chart name (this SFF)
+  # Chart version (of this chart)
+  # Chart App version (of this chart)
+  # START SPECIAL VALUES
+  parentChart:
+    Name: sff
+    Version: 0.1.0
+    AppVersion: "a877e9023"
+  # END SPECIAL VALUES
+
+  secretsFrom: sff
+  name: sff
+  image:
+    repository: 429316335035.dkr.ecr.eu-central-1.amazonaws.com/ekomi/sff
+  web:
+    ingress:
+      domains:
+        - sff.coddle.de
+      certificates:
+        wild-card-rajapack-ekomiapps-de-tls:
+          - sff.rajapack.ekomiapps.de
+  workers:
+    - name: genral
+      args: ["/sbin/workers/general.sh"]
+
+    - name: webhooks
+      args: ["/sbin/workers/webhooks.sh"]
+
+    - name: create-review-request
+      args: ["/sbin/workers/create-review-request.sh"]
+
+    - name: export-reviews-csv
+      args: ["/sbin/workers/export-reviews-csv.sh"]
+
+    - name: form-activity-stream-worker
+      args:  ["/sbin/workers/form-activity-stream.sh"]
+
+    - name: create-review-response
+      args:  ["/sbin/workers/create-review-response.sh"]
+
+    - name: feedback-importer
+      args: ["/sbin/workers/feedback-importer.sh"]
+
+  crons:
+    - name: analytics-stats
+      schedule: "*/5 * * * *"
+      args: ["/sbin/crons/analytics-stats.sh"]
+
+    - name: check-ab-testing
+      schedule: "*/5 * * * *"
+      args: ["/sbin/crons/check-ab-testing.sh"]
+
+    - name: failed-reviews-email-alert
+      schedule: "*/10 * * * *"
+      args: ["/sbin/crons/failed-reviews-email-alert.sh"]
+
+    - name: retry-failed-jobs
+      schedule: "*/10 * * * *"
+      args: ["/sbin/crons/retry-failed-jobs.sh"]
+
+    - name: retry-failed-reviews
+      schedule: "*/15 * * * *"
+      args: ["/sbin/crons/retry-failed-reviews.sh"]
+
+    - name: submit-delayed-reviews
+      schedule: "*/15 * * * *"
+      args: ["/sbin/crons/submit-delayed-reviews.sh"]

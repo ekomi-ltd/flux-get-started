@@ -1,0 +1,48 @@
+{{- range $.Values.crons }}
+{{- $context := dict "global" $ "current" .  -}}
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ include "cron.name" $context }}
+  namespace: {{ $.Release.namespace | default "default" }}
+  labels:
+    {{- include "crons.labels" $context | nindent 4 }}
+    {{- if $.Values.labels }} {{ toYaml $.Values.labels | nindent 4}} {{ end }}
+    {{- if .labels }} {{ toYaml .labels | nindent 4}} {{ end }}
+spec:
+  schedule: "{{ .schedule }}"
+  concurrencyPolicy: {{ coalesce .concurrencyPolicy "Forbid" }}
+  {{ if .startingDeadlineSeconds }}startingDeadlineSeconds: {{ .startingDeadlineSeconds }}{{ end }}
+  {{ if .successfulJobsHistoryLimit }}successfulJobsHistoryLimit: {{ .successfulJobsHistoryLimit }}{{ end }}
+  {{ if .failedJobsHistoryLimit }}failedJobsHistoryLimit: {{ .failedJobsHistoryLimit }}{{ end }}
+  {{ if .suspend }}suspend: {{ .suspend }}{{ end }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: main
+            image: "{{ $.Values.image.repository }}:{{ coalesce $.Values.image.tag  $.Values.parentChart.AppVersion }}"
+            {{ if .command }}command: {{ toYaml .command | nindent 12 }}
+            {{ else }}
+            command:
+            - /sbin/entrypoint.sh
+            {{- end }}
+            {{ if .args }}args: {{ toYaml .args | nindent 12 }}{{- end }}    
+            envFrom:
+              - secretRef:
+                  name: {{ coalesce .secretsFrom $.Values.secretsFrom }}
+            resources:
+              {{- if get . "resources"}}
+              {{- toYaml .resources | nindent 14 }}
+              {{- else }}
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 100m
+                memory: 256Mi
+              {{- end }}
+{{ end }}

@@ -1,0 +1,96 @@
+{{- $context := dict "global" $ "current" nil }}
+{{- if .Values.web -}}
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ include "web.name" $context }}
+  namespace: {{ .Release.namespace | default "default" }}
+  labels:
+  {{- include "web.labels" $context | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "web.selectorLabels" $context | nindent 6 }}
+  replicas: {{ .Values.web.count | default "1" }}
+  template:
+    metadata:
+      labels:
+        {{- include "web.labels" $context | nindent 8}}
+    spec:
+      imagePullSecrets:
+        - name: {{ coalesce .Values.web.imagePullSecret $.Values.imagePullSecret "aws-registry" }}
+      containers:
+      - name: {{ .Values.web.containerName | default "main" }}
+        image: "{{ $.Values.image.repository }}:{{ coalesce $.Values.image.tag  $.Values.parentChart.AppVersion }}"
+        {{ if .Values.web.command }}
+        command: {{ toYaml .Values.web.command | nindent 8 }}
+        {{ else }}
+        command:
+        - /sbin/entrypoint.sh
+        {{ end }}
+        {{ if .Values.web.args }}args: {{ toYaml .Values.web.args | nindent 8 }}{{- end }}
+        envFrom:
+        - secretRef:
+            name: {{ coalesce .Values.web.secretsFrom $.Values.secretsFrom }}
+          resources:
+          {{- if get .Values.web "resources"}}
+          {{- toYaml .Values.web.resources | nindent 10 }}
+          {{- else }}
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
+          {{- end }}
+        ports:
+        - containerPort: {{ .Values.web.containerPort | default "8000" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "service.name" $context }}
+  namespace: {{ .Release.namespace | default "default" }}
+spec:
+  selector:
+    {{- include "web.selectorLabels" $context | nindent 4 }}
+  ports:
+  - name: http
+    port: {{ .Values.web.servicePort | default "8000" }} 
+    protocol: TCP
+    targetPort: {{ .Values.web.containerPort  | default "8000" }}
+{{ if .Values.web.ingress }}
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: {{ include "web.name" $context }}
+  namespace: {{ .Release.namespace | default "default" }}
+  annotations:
+    {{- if .Values.web.ingress.annotations }}
+    {{- toYaml .Values.web.ingress.annotations | nindent 4 }}
+    {{ else }}
+    kubernetes.io/ingress.class: nginx
+    {{ end }}
+spec:
+  tls: # < placing a host in the TLS config will indicate a certificate should be created
+  {{- range $certificate, $domains := $.Values.web.ingress.certificates}}
+  - secretName: {{ $certificate }}
+    hosts:
+      {{- toYaml $domains | nindent 6 }}
+  {{- end }}
+  rules:
+  {{- range $.Values.web.ingress.domains }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: {{ include "service.name" $context }}
+          servicePort: {{ $.Values.web.servicePort | default "8000" }}
+  {{- end }}
+  {{/* if .Values.web.ingress (whole block won't be rendered) */}}
+  {{ end }}
+  {{/* if .Values.web (whole block won't be rendered) */}}
+  {{- end -}} 

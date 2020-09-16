@@ -1,0 +1,14 @@
+---
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+    name: kubed
+    namespace: kube-system
+    annotations:
+        fluxcd.io/automated: "true"
+spec:
+    releaseName: kubed
+    chart:
+        repository: https://charts.appscode.com/stable/
+        name: appscode/kubed
+        version: v0.12.0
